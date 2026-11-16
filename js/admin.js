@@ -80,7 +80,7 @@
     $("#loginView").hidden = true; $("#panelView").hidden = false;
     const w = $("#semBanco");
     w.hidden = bancoOk;
-    if (!bancoOk) w.textContent = "O banco de dados ainda não está ligado a este projeto no Vercel, então não dá para publicar alterações. No Vercel: Storage → Upstash Redis (Marketplace) → conectar ao projeto → publicar o site de novo.";
+    if (!bancoOk) w.textContent = "O armazenamento (Vercel Blob) ainda não está ligado a este projeto no Vercel, então não dá para publicar alterações. No Vercel: projeto → Storage → criar um Blob (público) → conectar ao projeto → publicar o site de novo.";
     pintarGeral(); desenharLista(); sujo(false);
   }
 
@@ -127,7 +127,7 @@
       try {
         aviso("Enviando a foto…");
         const j = await api("upload", { body: { data: await preparar(f, lado) } });
-        cb(j.url); sujo(); aviso("Foto enviada. Toque em “Publicar alterações” para ela aparecer no site.", "ok");
+        cb(j.url); sujo(); aviso("Foto enviada. Toque em “Publicar alterações” para ela aparecer para os clientes.", "ok");
       } catch (x) { aviso(x.message, "err"); }
     };
     inp.click();
@@ -287,7 +287,7 @@
       const ab = abertas();
       const j = await api("save", { body: { content: montar() } });
       carregar(j.content); pintarGeral(); desenharLista(ab); sujo(false);
-      aviso("Publicado! O site já mostra as mudanças (até 1 minuto para todos).", "ok");
+      aviso("Publicado! O site dos clientes já mostra as mudanças (leva uns 10 segundos).", "ok");
     } catch (x) { aviso(x.message, "err"); }
     b.disabled = false; b.textContent = "Publicar alterações";
   });

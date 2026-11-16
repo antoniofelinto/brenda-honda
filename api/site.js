@@ -7,12 +7,10 @@
      check    GET   confere se o token ainda vale
      save     POST  { content }       (precisa do token)
      upload   POST  { data }          (precisa do token) imagem em dataURL
-     img      GET   ?id=...           devolve a imagem enviada
      undo     POST  desfaz a última publicação (precisa do token)
 
-   Onde ficam os dados: Redis (Upstash) ligado ao projeto no Vercel.
-   Variáveis lidas: KV_REST_API_URL / KV_REST_API_TOKEN
-                    (ou UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN)
+   Onde ficam os dados: Vercel Blob (armazenamento do projeto no Vercel).
+   Variável lida: BLOB_READ_WRITE_TOKEN (entra sozinha ao criar o Blob no projeto).
    Obrigatórias: ADMIN_EMAIL e ADMIN_PASSWORD (acesso do painel; ficam só no Vercel,
                  nunca no código). Opcional: SESSION_SECRET.
 ------------------------------------------------------------------- */
@@ -20,25 +18,31 @@ const crypto = require("crypto");
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || ""; // definida no Vercel (Settings > Environment Variables)
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "";
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
+const BLOB_ON = () => !!process.env.BLOB_READ_WRITE_TOKEN;
 const SECRET = process.env.SESSION_SECRET ||
   crypto.createHash("sha256").update("bh-session|" + ADMIN_EMAIL + "|" + ADMIN_PASSWORD).digest("hex");
 const TTL = 12 * 3600 * 1000;
-const K = { content: "bh:content", bak: "bh:content:bak" };
-const IMG_URL = /^\/api\/site\?a=img&id=[a-f0-9]{16}$/;
+const P = { content: "bh/content.json", bak: "bh/content.bak.json" };
+const IMG_URL = /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/bh\/img\/[a-f0-9]{16}\.(webp|png|jpg)$/;
 
-/* ---------- Redis (REST) ---------- */
-async function redis(cmd) {
-  if (!REDIS_URL || !REDIS_TOKEN) { const e = new Error("storage-off"); e.code = "storage-off"; throw e; }
-  const r = await fetch(REDIS_URL, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + REDIS_TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify(cmd)
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.error) throw new Error(j.error || "redis " + r.status);
-  return j.result;
+/* ---------- armazenamento (Vercel Blob) ---------- */
+async function blobLib() {
+  if (!BLOB_ON()) { const e = new Error("storage-off"); e.code = "storage-off"; throw e; }
+  return import("@vercel/blob");
+}
+async function lerTexto(path) {
+  const { list } = await blobLib();
+  const r = await list({ prefix: path, limit: 5 });
+  const b = r.blobs.find(x => x.pathname === path);
+  if (!b) return null;
+  const v = new Date(b.uploadedAt).getTime(); // muda a cada gravação: nunca vem do cache velho
+  const res = await fetch(b.url + (b.url.includes("?") ? "&" : "?") + "v=" + v, { cache: "no-store" });
+  if (!res.ok) throw new Error("blob " + res.status);
+  return res.text();
+}
+async function gravarTexto(path, texto) {
+  const { put } = await blobLib();
+  await put(path, texto, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json", cacheControlMaxAge: 60 });
 }
 
 /* ---------- acesso ---------- */
@@ -64,6 +68,9 @@ function tokenOk(req) {
 }
 const ipDe = req => String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "x").split(",")[0].trim().replace(/[^\w.:-]/g, "").slice(0, 45);
 const espera = ms => new Promise(r => setTimeout(r, ms));
+const falhas = new Map(); // ip -> { n, ate }  (por instância da função)
+const bloqueado = ip => { const f = falhas.get(ip); return !!(f && f.ate > Date.now() && f.n >= 8); };
+const falhou = ip => { const t = Date.now(), f = falhas.get(ip); if (!f || f.ate <= t) falhas.set(ip, { n: 1, ate: t + 900000 }); else f.n++; };
 
 /* ---------- limpeza do que chega do painel ---------- */
 const txt = (v, max) => String(v == null ? "" : v).replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -124,7 +131,7 @@ function json(res, code, obj, cache) {
   res.status(code).json(obj);
 }
 async function lerConteudo() {
-  try { const s = await redis(["GET", K.content]); return s ? JSON.parse(s) : {}; } catch (e) { return {}; }
+  try { const s = await lerTexto(P.content); return s ? JSON.parse(s) : {}; } catch (e) { return {}; }
 }
 
 module.exports = async function handler(req, res) {
@@ -134,36 +141,40 @@ module.exports = async function handler(req, res) {
     if (a === "content") {
       const c = await lerConteudo();
       const admin = req.query.admin && tokenOk(req);
-      return json(res, 200, c, admin ? "no-store" : "public, max-age=0, s-maxage=15, stale-while-revalidate=60");
+      return json(res, 200, c, admin ? "no-store" : "public, max-age=0, s-maxage=10");
     }
 
-    if (a === "img") {
-      const id = String(req.query.id || "");
-      if (!/^[a-f0-9]{16}$/.test(id)) return json(res, 404, { erro: "não encontrada" });
-      const v = await redis(["GET", "bh:img:" + id]);
-      if (!v) return json(res, 404, { erro: "não encontrada" });
-      const i = v.indexOf("|");
-      res.setHeader("Content-Type", v.slice(0, i));
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      return res.status(200).send(Buffer.from(v.slice(i + 1), "base64"));
+    if (a === "selftest") { // TEMPORÁRIO
+      const k = crypto.createHash("sha256").update("selftest" + SECRET).digest("hex").slice(0, 16);
+      if (req.query.k !== k) return json(res, 404, { erro: "rota desconhecida" });
+      const out = { blobOn: BLOB_ON(), passos: [] };
+      try {
+        const marca = "t" + Date.now();
+        await gravarTexto("bh/selftest.json", JSON.stringify({ marca })); out.passos.push("gravou");
+        const lido = await lerTexto("bh/selftest.json"); out.passos.push("leu"); out.igual = JSON.parse(lido).marca === marca;
+        await gravarTexto("bh/selftest.json", JSON.stringify({ marca: marca + "b" }));
+        out.depois = JSON.parse(await lerTexto("bh/selftest.json")).marca === marca + "b"; out.passos.push("sobrescreveu");
+        const { put } = await blobLib();
+        const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+        const r = await put("bh/img/0000000000000000.png", png, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png", cacheControlMaxAge: 60 });
+        out.imgUrl = r.url; out.imgOk = IMG_URL.test(r.url); out.passos.push("imagem");
+        const f = await fetch(r.url); out.imgHttp = f.status; out.imgType = f.headers.get("content-type");
+      } catch (e) { out.erro = String(e && e.message || e).slice(0, 300); }
+      return json(res, 200, out);
     }
 
     if (a === "login" && req.method === "POST") {
-      const ip = ipDe(req), key = "bh:rl:" + ip;
-      try {
-        const n = await redis(["INCR", key]);
-        if (n === 1) await redis(["EXPIRE", key, 900]);
-        if (n > 8) return json(res, 429, { erro: "Muitas tentativas. Tente de novo em 15 minutos." });
-      } catch (e) { /* sem banco: segue só com o atraso abaixo */ }
+      const ip = ipDe(req);
+      if (bloqueado(ip)) return json(res, 429, { erro: "Muitas tentativas. Tente de novo em 15 minutos." });
       if (!ADMIN_EMAIL || !ADMIN_PASSWORD) return json(res, 503, { erro: "O acesso do painel ainda não foi configurado no Vercel (ADMIN_EMAIL e ADMIN_PASSWORD)." });
       const okEmail = iguais(String(body.email || "").trim().toLowerCase(), ADMIN_EMAIL);
       const okSenha = senhaOk(body.senha || "");
-      if (!(okEmail && okSenha)) { await espera(700); return json(res, 401, { erro: "E-mail ou senha inválidos." }); }
-      try { await redis(["DEL", key]); } catch (e) { /* ok */ }
-      return json(res, 200, { token: criarToken(), expira: Date.now() + TTL, banco: !!(REDIS_URL && REDIS_TOKEN) });
+      if (!(okEmail && okSenha)) { falhou(ip); await espera(700); return json(res, 401, { erro: "E-mail ou senha inválidos." }); }
+      falhas.delete(ip);
+      return json(res, 200, { token: criarToken(), expira: Date.now() + TTL, banco: BLOB_ON() });
     }
 
-    if (a === "check") return tokenOk(req) ? json(res, 200, { ok: true, banco: !!(REDIS_URL && REDIS_TOKEN) }) : json(res, 401, { erro: "sessão expirada" });
+    if (a === "check") return tokenOk(req) ? json(res, 200, { ok: true, banco: BLOB_ON() }) : json(res, 401, { erro: "sessão expirada" });
 
     if (!tokenOk(req)) return json(res, 401, { erro: "Sessão expirada. Entre de novo." });
 
@@ -171,18 +182,18 @@ module.exports = async function handler(req, res) {
       const novo = limpar(body.content);
       const s = JSON.stringify(novo);
       if (s.length > 600000) return json(res, 413, { erro: "Conteúdo grande demais." });
-      const atual = await redis(["GET", K.content]);
-      if (atual) await redis(["SET", K.bak, atual]);
-      await redis(["SET", K.content, s]);
+      const atual = await lerTexto(P.content);
+      if (atual) await gravarTexto(P.bak, atual);
+      await gravarTexto(P.content, s);
       return json(res, 200, { ok: true, content: novo });
     }
 
     if (a === "undo" && req.method === "POST") {
-      const bak = await redis(["GET", K.bak]);
+      const bak = await lerTexto(P.bak);
       if (!bak) return json(res, 404, { erro: "Não há versão anterior." });
-      const atual = await redis(["GET", K.content]);
-      await redis(["SET", K.content, bak]);
-      if (atual) await redis(["SET", K.bak, atual]);
+      const atual = await lerTexto(P.content);
+      await gravarTexto(P.content, bak);
+      if (atual) await gravarTexto(P.bak, atual);
       return json(res, 200, { ok: true, content: JSON.parse(bak) });
     }
 
@@ -197,13 +208,15 @@ module.exports = async function handler(req, res) {
         (m[1] === "image/webp" && h.toString("ascii", 0, 4) === "RIFF" && h.toString("ascii", 8, 12) === "WEBP");
       if (!magic) return json(res, 400, { erro: "Arquivo não parece uma imagem." });
       const id = crypto.randomBytes(8).toString("hex");
-      await redis(["SET", "bh:img:" + id, m[1] + "|" + m[2]]);
-      return json(res, 200, { url: "/api/site?a=img&id=" + id });
+      const ext = { "image/webp": "webp", "image/png": "png", "image/jpeg": "jpg" }[m[1]];
+      const { put } = await blobLib();
+      const r = await put("bh/img/" + id + "." + ext, buf, { access: "public", addRandomSuffix: false, contentType: m[1], cacheControlMaxAge: 31536000 });
+      return json(res, 200, { url: r.url });
     }
 
     return json(res, 404, { erro: "rota desconhecida" });
   } catch (e) {
-    if (e && e.code === "storage-off") return json(res, 503, { erro: "O banco de dados ainda não está ligado ao projeto no Vercel.", semBanco: true });
+    if (e && e.code === "storage-off") return json(res, 503, { erro: "O armazenamento (Vercel Blob) ainda não está ligado ao projeto no Vercel.", semBanco: true });
     return json(res, 500, { erro: "Erro no servidor. Tente de novo." });
   }
 };
