@@ -144,25 +144,6 @@ module.exports = async function handler(req, res) {
       return json(res, 200, c, admin ? "no-store" : "public, max-age=0, s-maxage=10");
     }
 
-    if (a === "selftest") { // TEMPORÁRIO
-      const k = crypto.createHash("sha256").update("selftest" + SECRET).digest("hex").slice(0, 16);
-      if (req.query.k !== k) return json(res, 404, { erro: "rota desconhecida" });
-      const out = { blobOn: BLOB_ON(), passos: [] };
-      try {
-        const marca = "t" + Date.now();
-        await gravarTexto("bh/selftest.json", JSON.stringify({ marca })); out.passos.push("gravou");
-        const lido = await lerTexto("bh/selftest.json"); out.passos.push("leu"); out.igual = JSON.parse(lido).marca === marca;
-        await gravarTexto("bh/selftest.json", JSON.stringify({ marca: marca + "b" }));
-        out.depois = JSON.parse(await lerTexto("bh/selftest.json")).marca === marca + "b"; out.passos.push("sobrescreveu");
-        const { put } = await blobLib();
-        const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
-        const r = await put("bh/img/0000000000000000.png", png, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png", cacheControlMaxAge: 60 });
-        out.imgUrl = r.url; out.imgOk = IMG_URL.test(r.url); out.passos.push("imagem");
-        const f = await fetch(r.url); out.imgHttp = f.status; out.imgType = f.headers.get("content-type");
-      } catch (e) { out.erro = String(e && e.message || e).slice(0, 300); }
-      return json(res, 200, out);
-    }
-
     if (a === "login" && req.method === "POST") {
       const ip = ipDe(req);
       if (bloqueado(ip)) return json(res, 429, { erro: "Muitas tentativas. Tente de novo em 15 minutos." });
