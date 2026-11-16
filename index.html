@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brenda Honda | Vitrine de motos Honda na Motorac Toritama</title>
+<meta name="description" content="Veja as motos Honda 0 km, compare modelos e fale direto com a Brenda, vendedora interna da Motorac em Toritama.">
+<meta name="theme-color" content="#d6001c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,600;1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  /* a abertura só roda quando a pessoa não pediu menos movimento */
+  try { if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("intro-on"); } catch (e) {}
+</script>
+<noscript><style>#intro{display:none!important}.ln>span,.h-in{transform:none!important;opacity:1!important}html{overflow:auto!important}</style></noscript>
+</head>
+<body>
+
+<!-- ABERTURA: a moto passa e revela o nome -->
+<div id="intro" aria-hidden="true">
+  <div class="intro-title"><span>Brenda Honda</span></div>
+  <div class="intro-speed"><i></i><i></i><i></i></div>
+  <div class="intro-road"></div>
+  <div class="intro-bike"></div>
+  <div class="intro-curtain"></div>
+  <button class="intro-skip" type="button">Pular</button>
+</div>
+
+<!-- barra de progresso com moto -->
+<div class="ride" aria-hidden="true"><div class="ride-bar"></div><div class="ride-bike"></div></div>
+
+<header class="hd" id="top">
+  <a class="logo" href="#top" aria-label="Brenda Honda, início"><i></i>Brenda Honda</a>
+  <nav class="nav" id="nav" aria-label="Principal">
+    <a href="#motos">Motos</a>
+    <a href="#quiz">Qual moto combina?</a>
+    <a href="#brenda">Atendimento</a>
+    <a href="#contato">Contato</a>
+  </nav>
+  <div class="hd-right">
+    <a class="btn btn-sm" data-wa="Oi Brenda! Vi o seu site e quero conhecer as motos Honda." target="_blank" rel="noopener"><span>Falar com a Brenda</span></a>
+    <button class="burger" id="burger" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav"><i></i><i></i></button>
+  </div>
+</header>
+
+<main>
+<!-- HERO -->
+<section class="hero" aria-labelledby="h1">
+  <div class="hero-art" aria-hidden="false">
+    <div class="bigwheel-wrap" aria-hidden="true">
+      <svg class="bigwheel" viewBox="-210 -210 420 420" xmlns="http://www.w3.org/2000/svg">
+        <g class="bw-rot">
+          <circle r="204" fill="#d6001c"/>
+          <g id="tread" stroke="#a80016" stroke-width="9" stroke-linecap="round"></g>
+          <circle r="160" fill="#fff"/>
+          <circle r="160" fill="none" stroke="#f0d3d7" stroke-width="4"/>
+          <g id="spokes" fill="#d6001c"></g>
+          <circle r="150" fill="none" stroke="#d6001c" stroke-width="7" stroke-dasharray="2 14" stroke-linecap="round" opacity=".35"/>
+          <circle r="62" fill="#d6001c"/>
+          <circle r="62" fill="none" stroke="#a80016" stroke-width="6"/>
+          <circle r="22" fill="#fff"/>
+        </g>
+      </svg>
+    </div>
+    <img class="brenda h-in" data-brenda src="assets/brenda.webp" width="673" height="1108" alt="Brenda Suelen, vendedora da Motorac, sorrindo">
+  </div>
+
+  <div class="hero-copy">
+    <h1 id="h1">
+      <span class="ln" style="--i:0"><span>Sua próxima</span></span>
+      <span class="ln" style="--i:1"><span>Honda sai</span></span>
+      <span class="ln" style="--i:2"><span>daqui.</span></span>
+    </h1>
+    <p class="lead h-in" style="--d:.55s">Eu sou a Brenda, vendedora interna da Motorac, em Toritama. Veja as Honda 0 km, compare os modelos e me chame para conversar.</p>
+    <div class="cta-row h-in" style="--d:.7s">
+      <a class="btn" data-wa="Oi Brenda! Vi o seu site e quero conhecer as motos Honda." target="_blank" rel="noopener"><span>Falar com a Brenda</span></a>
+      <a class="btn ghost" href="#motos"><span>Ver as motos</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- FAIXA ROLANTE -->
+<div class="marquee" aria-hidden="true"><div class="mq-track" id="mq"></div></div>
+
+<!-- VITRINE -->
+<section class="sec" id="motos" aria-labelledby="h-motos">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="h-motos">Escolha a sua Honda</h2>
+      <p>Toque em uma moto para ver as especificações. Marque até 3 para comparar lado a lado.</p>
+    </div>
+
+    <div class="tools">
+      <div class="chips" id="chips" role="group" aria-label="Filtrar por categoria"></div>
+      <label class="sort"><span>Ordenar</span>
+        <select id="sort">
+          <option value="destaque">Em destaque</option>
+          <option value="preco-asc">Menor preço</option>
+          <option value="preco-desc">Maior preço</option>
+          <option value="potencia">Mais potente</option>
+          <option value="tanque">Maior tanque</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="grid" id="grid" aria-live="polite"></div>
+    <p class="fine" id="fine">Imagens e cores ilustrativas. Preços de referência sugeridos (base São Paulo, sem frete), consultados em <span id="dt"></span>. Podem mudar: confirme valores e condições com a Brenda.</p>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section class="sec alt" id="quiz" aria-labelledby="h-quiz">
+  <div class="wrap quiz-wrap">
+    <div class="sec-head">
+      <h2 id="h-quiz">Qual moto combina com você?</h2>
+      <p>Responda 3 perguntas rápidas e eu mostro a Honda que mais combina com o seu jeito de rodar.</p>
+    </div>
+    <div class="quiz" id="quizBox"></div>
+  </div>
+</section>
+
+<!-- ATENDIMENTO -->
+<section class="about" id="brenda" aria-labelledby="h-about">
+  <div class="about-copy">
+    <h2 id="h-about">Do primeiro oi até a retirada, eu acompanho você.</h2>
+    <ul class="promises" id="promises"></ul>
+    <a class="btn" data-wa="Oi Brenda! Quero ajuda para escolher a minha moto." target="_blank" rel="noopener"><span>Quero ajuda para escolher</span></a>
+  </div>
+  <div class="about-art">
+    <div class="slab" aria-hidden="true"></div>
+    <img data-brenda src="assets/brenda.webp" width="673" height="1108" loading="lazy" alt="Brenda sorrindo, de pé, pronta para atender na Motorac">
+    <div class="desk" aria-hidden="true"></div>
+  </div>
+</section>
+
+<!-- CONTATO -->
+<section class="contact" id="contato" aria-labelledby="h-contact">
+  <div class="wrap contact-grid">
+    <div class="contact-copy">
+      <h2 id="h-contact">Vamos escolher a sua?</h2>
+      <p>Conte qual moto chamou a sua atenção e como você pensa em pagar. Eu monto a mensagem e você envia para mim.</p>
+      <div class="links">
+        <a class="btn btn-inv" data-wa="Oi Brenda! Quero conversar sobre uma moto Honda." target="_blank" rel="noopener"><span>Falar com a Brenda</span></a>
+        <a class="btn btn-line" href="https://www.instagram.com/brendahonda_/" target="_blank" rel="noopener"><span>@brendahonda_ no Instagram</span></a>
+      </div>
+      <p class="where">Motorac, Toritama</p>
+    </div>
+
+    <form class="compose" id="compose" autocomplete="off">
+      <label>Seu nome
+        <input type="text" id="cName" placeholder="Como posso te chamar?" maxlength="40">
+      </label>
+      <label>Moto de interesse
+        <select id="cMoto"></select>
+      </label>
+      <fieldset>
+        <legend>Como pretende pagar</legend>
+        <div class="seg" id="cPay"></div>
+      </fieldset>
+      <button class="btn" type="submit"><span>Montar mensagem</span></button>
+      <div class="out" id="out" hidden>
+        <textarea id="outText" rows="4" readonly aria-label="Mensagem pronta"></textarea>
+        <div class="out-row">
+          <a class="btn btn-sm" id="outSend" target="_blank" rel="noopener"><span>Enviar para a Brenda</span></a>
+          <button class="btn btn-sm ghost" id="outCopy" type="button"><span>Copiar texto</span></button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+</main>
+
+<footer class="ft">
+  <div class="wrap ft-in">
+    <p><strong>Brenda Honda</strong>, vendedora interna da Motorac, Toritama.</p>
+    <p class="fine">Site de divulgação da vendedora. Honda é marca de Honda Motor Co., Ltd. As imagens são ilustrativas; consulte cores, versões e condições oficiais com a Brenda.</p>
+    <p class="fine">Criado pela AFR.</p>
+  </div>
+</footer>
+
+<!-- barra de comparação -->
+<div class="tray" id="tray" hidden>
+  <div class="tray-in">
+    <div class="tray-list" id="trayList"></div>
+    <button class="btn btn-sm" id="trayGo" type="button"><span>Comparar</span></button>
+    <button class="tray-clear" id="trayClear" type="button" aria-label="Limpar comparação">Limpar</button>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle"><button class="x" type="button" data-close aria-label="Fechar">×</button><div id="dlgBody"></div></dialog>
+<dialog id="cmp" class="wide" aria-labelledby="cmpTitle"><button class="x" type="button" data-close aria-label="Fechar">×</button><div id="cmpBody"></div></dialog>
+
+<script src="js/data.js"></script>
+<script src="js/bikes.js"></script>
+<script src="js/content.js"></script>
+</body>
+</html>
