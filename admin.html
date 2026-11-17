@@ -59,7 +59,8 @@
     .mini.blue { background: #2563eb; color: #fff; border-color: #2563eb; }
     h3 { font-size: .9rem; margin: 18px 0 8px; color: #0f172a; }
     .brenda-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-    .brenda-row img { height: 120px; width: auto; border-radius: 8px; background: #e2e8f0; }
+    /* fundo com um "pneu" vermelho: mostra se a foto está recortada (a roda aparece por trás dela) */
+    .brenda-row img { height: 150px; width: auto; border-radius: 8px; background: radial-gradient(circle at 25% 78%, #d6001c 0 56%, #e2e8f0 57%); }
 
     details.moto { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.1); margin-bottom: 10px; overflow: hidden; }
     details.moto > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; }
@@ -147,7 +148,8 @@
             <button type="button" class="mini" id="gOrig">Voltar à foto original</button>
           </div>
         </div>
-        <p class="hint" style="margin-top:8px">Dica: foto de corpo inteiro, de pé, com o fundo já removido (PNG ou WebP transparente) fica melhor.</p>
+        <p class="hint" id="gStatus" style="margin-top:8px;color:#1d4ed8;font-weight:600" role="status" hidden></p>
+        <p class="hint" style="margin-top:8px">O fundo da foto é removido automaticamente, para a roda do site passar por trás dela (a 1ª vez baixa o recortador e pode levar alguns segundos). Fica melhor com foto de pé, bem iluminada e com ela bem destacada do fundo. Se a foto já vier com fundo transparente (PNG), ela é usada como está.</p>
       </section>
 
       <section class="card">

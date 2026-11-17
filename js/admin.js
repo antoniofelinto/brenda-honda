@@ -109,7 +109,7 @@
     if (k === "instagram") v = v.replace(/^@/, "").replace(/[^\w.]/g, "");
     CONFIG[k] = v; sujo();
   });
-  $("#gTrocar").addEventListener("click", () => pedirFoto(1400, url => { CONFIG.brendaFoto = url; $("#gFoto").src = url; }));
+  $("#gTrocar").addEventListener("click", () => pedirFoto(1400, url => { CONFIG.brendaFoto = url; $("#gFoto").src = url; }, { recortar: true }));
   $("#gOrig").addEventListener("click", () => { delete CONFIG.brendaFoto; $("#gFoto").src = "assets/brenda.webp"; sujo(); });
 
   /* ---------- foto: reduz no aparelho e envia ---------- */
@@ -133,15 +133,134 @@
     if (!b || b.size > 1400000) throw new Error("A foto ficou pesada demais. Tente uma menor.");
     return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
   }
-  function pedirFoto(lado, cb) {
+  /* ---------- recorte automático do fundo (a roda passa por trás da Brenda) ----------
+     Roda no próprio navegador: MODNet (recorte de pessoas, licença Apache-2.0) via Transformers.js.
+     Biblioteca vem do jsDelivr e o modelo (~26 MB) do Hugging Face, só na 1ª vez (fica em cache).
+     Se algo falhar (sem internet, foto estranha…), a foto sobe como veio. */
+  const RECORTE_LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3";
+  const RECORTE_MODELO = "Xenova/modnet";
+  const FOTO_MAX_BYTES = 2300000; // o servidor aceita até 2,5 MB
+  let recorte = null, recorteProg = () => {};
+  const statusFoto = msg => { const p = $("#gStatus"); p.textContent = msg || ""; p.hidden = !msg; };
+  const paraBlob = (c, t, q) => new Promise(r => c.toBlob(r, t, q));
+  const paraDataUrl = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+  const abrirImg = url => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error("Não consegui abrir essa imagem.")); i.src = url; });
+  const erroRecorte = msg => Object.assign(new Error(msg), { amigavel: true });
+
+  function carregarRecorte() {
+    if (!recorte) recorte = (async () => {
+      const T = await import(RECORTE_LIB);
+      const arq = {};
+      const progress_callback = p => {
+        if (!p || p.status !== "progress" || !p.file) return;
+        arq[p.file] = p;
+        let l = 0, t = 0; Object.values(arq).forEach(a => { l += a.loaded || 0; t += a.total || 0; });
+        if (t) recorteProg(Math.min(99, Math.round(l / t * 100)));
+      };
+      const [model, processor] = await Promise.all([
+        T.AutoModel.from_pretrained(RECORTE_MODELO, { dtype: "fp32", progress_callback }),
+        T.AutoProcessor.from_pretrained(RECORTE_MODELO)
+      ]);
+      return { T, model, processor };
+    })().catch(e => { recorte = null; throw e; });
+    return recorte;
+  }
+
+  /* filtros 3x3 separáveis sobre o alfa (0–1): encolher 1 px e suavizar a borda */
+  function filtro3(A, w, h, modo) {
+    const t = new Float32Array(A.length), r = new Float32Array(A.length);
+    const f = modo === "min" ? (a, b, c) => Math.min(a, b, c) : (a, b, c) => (a + b + c) / 3;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; t[i] = f(A[x > 0 ? i - 1 : i], A[i], A[x < w - 1 ? i + 1 : i]); }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; r[i] = f(t[y > 0 ? i - w : i], t[i], t[y < h - 1 ? i + w : i]); }
+    return r;
+  }
+
+  /* WebP (com transparência) quando o navegador grava; no iPhone/Safari vira PNG.
+     Nunca usa JPEG, que perderia a transparência. Reduz o tamanho até caber no limite. */
+  async function codificarComAlfa(cv0) {
+    for (const f of [1, .85, .7, .58, .48]) {
+      let cv = cv0;
+      if (f < 1) { cv = document.createElement("canvas"); cv.width = Math.round(cv0.width * f); cv.height = Math.round(cv0.height * f); cv.getContext("2d").drawImage(cv0, 0, 0, cv.width, cv.height); }
+      let b = await paraBlob(cv, "image/webp", .86);
+      if (!b || b.type !== "image/webp") b = await paraBlob(cv, "image/png");
+      if (b && b.size <= FOTO_MAX_BYTES) return b;
+    }
+    throw erroRecorte("a foto ficou pesada demais");
+  }
+
+  /* devolve a foto (dataURL) já sem fundo. Se a foto já tem transparência, só reencoda. */
+  async function recortarFoto(file, lado) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await abrirImg(url);
+      const k = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k), n = w * h;
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      const ctx = cv.getContext("2d", { willReadFrequently: true }); ctx.drawImage(img, 0, 0, w, h);
+      const px = ctx.getImageData(0, 0, w, h), d = px.data;
+      let transp = 0; for (let i = 3; i < d.length; i += 4) if (d[i] < 250) transp++;
+      if (transp > n * 0.03) return paraDataUrl(await codificarComAlfa(cv)); // já vem recortada
+
+      recorteProg = pct => statusFoto(`Baixando o recortador… ${pct}% (só na 1ª vez)`);
+      statusFoto("Preparando o recortador… (só na 1ª vez)");
+      const { T, model, processor } = await carregarRecorte();
+      statusFoto("Recortando o fundo da foto…");
+      const jb = await paraBlob(cv, "image/jpeg", .92), ju = URL.createObjectURL(jb);
+      let masc;
+      try {
+        const raw = await T.RawImage.fromURL(ju);
+        const { pixel_values } = await processor(raw);
+        const { output } = await model({ input: pixel_values });
+        masc = await T.RawImage.fromTensor(output[0].mul(255).to("uint8")).resize(w, h);
+      } finally { URL.revokeObjectURL(ju); }
+      if (!masc || !masc.data || masc.data.length !== n) throw new Error("resposta inesperada do recortador");
+
+      // alfa: curva suave, encolhe 1 px (tira a franja do fundo) e suaviza a borda
+      let A = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const t = Math.min(1, Math.max(0, (masc.data[i] / 255 - 0.08) / 0.84)); A[i] = t * t * (3 - 2 * t); }
+      A = filtro3(filtro3(A, w, h, "min"), w, h, "media");
+
+      // confere se achou a pessoa e já corta as sobras em volta dela
+      let dentro = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (A[y * w + x] > 0.5) { dentro++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (dentro < n * 0.04 || dentro > n * 0.97) throw erroRecorte("não achei a pessoa na foto");
+      for (let i = 0; i < n; i++) d[i * 4 + 3] = Math.round(A[i] * 255);
+      ctx.putImageData(px, 0, 0);
+      const pad = Math.round(Math.max(w, h) * 0.01);
+      const cx = Math.max(0, x0 - pad), cy = Math.max(0, y0 - pad), cw = Math.min(w - 1, x1 + pad) - cx + 1, ch = Math.min(h - 1, y1 + pad) - cy + 1;
+      const out = document.createElement("canvas"); out.width = cw; out.height = ch;
+      out.getContext("2d").drawImage(cv, cx, cy, cw, ch, 0, 0, cw, ch);
+      statusFoto("Preparando a foto…");
+      return paraDataUrl(await codificarComAlfa(out));
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  function pedirFoto(lado, cb, opt = {}) {
     const inp = $("#arq"); inp.value = "";
     inp.onchange = async () => {
       const f = inp.files[0]; if (!f) return;
+      const bts = opt.recortar ? [$("#gTrocar"), $("#gOrig")] : [];
+      bts.forEach(b => { b.disabled = true; });
+      let semRecorte = "";
       try {
+        let data = null;
+        if (opt.recortar) {
+          try { data = await recortarFoto(f, lado); }
+          catch (x) {
+            console.warn("Recorte do fundo falhou:", x);
+            semRecorte = x && x.amigavel ? `Não consegui tirar o fundo (${x.message}).` : "Não consegui tirar o fundo automaticamente (confira a internet e tente de novo).";
+          }
+          statusFoto("");
+        }
+        if (!data) data = await preparar(f, lado);
         aviso("Enviando a foto…");
-        const j = await api("upload", { body: { data: await preparar(f, lado) } });
-        cb(j.url); sujo(); aviso("Foto enviada. Toque em “Publicar alterações” para ela aparecer para os clientes.", "ok");
+        const j = await api("upload", { body: { data } });
+        cb(j.url); sujo();
+        if (semRecorte) aviso(semRecorte + " A foto foi enviada do jeito que veio. Dica: uma foto em PNG com fundo transparente também funciona.", "err");
+        else aviso(opt.recortar ? "Foto recortada e enviada. Toque em “Publicar alterações” para ela aparecer para os clientes." : "Foto enviada. Toque em “Publicar alterações” para ela aparecer para os clientes.", "ok");
       } catch (x) { aviso(x.message, "err"); }
+      if (opt.recortar) statusFoto("");
+      bts.forEach(b => { b.disabled = false; });
     };
     inp.click();
   }

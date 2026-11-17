@@ -195,7 +195,7 @@ module.exports = async function handler(req, res) {
       const m = /^data:(image\/(?:webp|png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(String(body.data || ""));
       if (!m) return json(res, 400, { erro: "Imagem inválida (use JPG, PNG ou WebP)." });
       const buf = Buffer.from(m[2], "base64");
-      if (buf.length > 1500000) return json(res, 413, { erro: "Imagem grande demais (máx. 1,5 MB)." });
+      if (buf.length > 2500000) return json(res, 413, { erro: "Imagem grande demais (máx. 2,5 MB)." });
       const h = buf.subarray(0, 12);
       const magic = (m[1] === "image/png" && h[0] === 0x89 && h[1] === 0x50) ||
         (m[1] === "image/jpeg" && h[0] === 0xff && h[1] === 0xd8) ||

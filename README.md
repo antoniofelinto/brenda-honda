@@ -16,3 +16,12 @@ Site estático (HTML/CSS/JS) com painel de administrador em `/admin.html`.
 | `BLOB_READ_WRITE_TOKEN` | entra sozinha ao conectar um armazenamento Blob (público) ao projeto |
 
 Nenhuma senha fica no código.
+
+## Foto da Brenda: recorte automático do fundo
+
+Ao trocar a foto no painel, o fundo é removido no próprio navegador (para a roda do site passar por trás dela):
+
+- modelo **MODNet** (Apache-2.0) via **Transformers.js** `3.7.3` — a biblioteca vem do jsDelivr e o modelo (~26 MB) do Hugging Face, só na 1ª vez (fica em cache do navegador)
+- foto que já vem com fundo transparente (PNG/WebP) é usada como está
+- se o recorte falhar (sem internet, pessoa não encontrada…), a foto sobe como veio e o painel avisa
+- no iPhone/Safari (que não grava WebP) a foto sai em PNG com transparência, reduzida até caber em 2,3 MB
