@@ -92,6 +92,7 @@ html.intro-on #intro{display:block}
 .hero h1{font-size:clamp(66px,10.6vw,150px);line-height:.9;margin-bottom:clamp(18px,3vh,30px)}
 .ln{display:block;overflow:hidden;padding:.04em .12em .02em 0;margin-right:-.12em}
 .ln>span{display:block;white-space:nowrap;transform:translateY(112%) skewY(5deg);transform-origin:left bottom}
+.ln.wrap>span{white-space:normal} /* linha longa (editada no painel) quebra em vez de vazar */
 body.go .ln>span{animation:lineUp .95s var(--ease) both;animation-delay:calc(var(--i)*.1s)}
 @keyframes lineUp{to{transform:none}}
 .lead{font-size:clamp(17px,1.5vw,20px);color:var(--ink-2);max-width:40ch;margin:0 0 28px}

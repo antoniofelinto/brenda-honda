@@ -150,6 +150,26 @@
         <p class="hint" style="margin-top:8px">Dica: foto de corpo inteiro, de pé, com o fundo já removido (PNG ou WebP transparente) fica melhor.</p>
       </section>
 
+      <section class="card">
+        <h2>Texto do topo do site</h2>
+        <p class="hint">É o texto grande que aparece assim que o site abre: o título, o parágrafo embaixo dele e os dois botões. Use linhas curtas no título. Deixe uma linha em branco se quiser usar menos de 3 linhas.</p>
+        <h3 style="margin-top:6px">Título (3 linhas)</h3>
+        <div class="grid">
+          <div class="f"><label for="hL1">Linha 1</label><input id="hL1" maxlength="30" data-hf="l1"></div>
+          <div class="f"><label for="hL2">Linha 2</label><input id="hL2" maxlength="30" data-hf="l2"></div>
+          <div class="f"><label for="hL3">Linha 3</label><input id="hL3" maxlength="30" data-hf="l3"></div>
+        </div>
+        <h3>Parágrafo</h3>
+        <div class="f"><label for="hTx">Texto embaixo do título</label><textarea id="hTx" maxlength="300" data-hf="texto"></textarea></div>
+        <h3>Botões</h3>
+        <div class="grid">
+          <div class="f"><label for="hB1">Botão principal (vermelho)</label><input id="hB1" maxlength="30" data-hf="btn1"></div>
+          <div class="f"><label for="hB2">Botão secundário (contorno)</label><input id="hB2" maxlength="30" data-hf="btn2"></div>
+        </div>
+        <p class="hint" style="margin-top:8px">O botão principal abre o WhatsApp da Brenda; o secundário rola até as motos.</p>
+        <div class="acts"><button type="button" class="mini" id="hOrig">Voltar ao texto original</button></div>
+      </section>
+
       <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px">
         <h2 style="font-size:1.05rem">Motos</h2>
         <button class="mini blue" type="button" id="btnNova">+ Adicionar moto</button>

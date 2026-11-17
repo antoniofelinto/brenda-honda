@@ -12,7 +12,16 @@ const CONFIG = {
   whatsapp: "5581994391218",
   instagram: "brendahonda_",
   loja: "Motorac Toritama",
-  dataPrecos: "14/11/2026"
+  dataPrecos: "14/11/2026",
+  // Texto do topo do site (editável no painel). l1–l3 = as 3 linhas do título.
+  hero: {
+    l1: "Sua próxima",
+    l2: "Honda sai",
+    l3: "daqui.",
+    texto: "Eu sou a Brenda, vendedora interna da Motorac, em Toritama. Veja as Honda 0 km, compare os modelos e me chame para conversar.",
+    btn1: "Falar com a Brenda",
+    btn2: "Ver as motos"
+  }
 };
 
 const F = n => "assets/motos/" + n + ".webp";

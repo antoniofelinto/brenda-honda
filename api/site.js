@@ -109,6 +109,17 @@ function limparMoto(id, m) {
   o.destaques = (Array.isArray(m.destaques) ? m.destaques : []).slice(0, 8).map(d => txt(d, 200)).filter(Boolean);
   return o;
 }
+/* texto do topo do site: título (3 linhas), parágrafo e 2 botões */
+const HERO_MAX = { l1: 30, l2: 30, l3: 30, texto: 300, btn1: 30, btn2: 30 };
+const HERO_LINHAS = ["l1", "l2", "l3"];
+function limparHero(h) {
+  const out = {};
+  if (!h || typeof h !== "object") return out;
+  for (const k of HERO_LINHAS) if (typeof h[k] === "string") out[k] = txt(h[k], HERO_MAX[k]); // linha pode ficar em branco
+  for (const k of ["texto", "btn1", "btn2"]) if (typeof h[k] === "string") { const v = txt(h[k], HERO_MAX[k]); if (v) out[k] = v; }
+  if (HERO_LINHAS.every(k => out[k] === "")) HERO_LINHAS.forEach(k => delete out[k]); // título não pode ficar sem nenhuma linha
+  return out;
+}
 function limpar(c) {
   const out = { v: 1, config: {}, motos: {} };
   const cf = (c && c.config) || {};
@@ -117,6 +128,8 @@ function limpar(c) {
   if (/^[\w.]{1,30}$/.test(cf.instagram || "")) out.config.instagram = cf.instagram;
   if (cf.dataPrecos) out.config.dataPrecos = txt(cf.dataPrecos, 20);
   if (fotoOk(cf.brendaFoto)) out.config.brendaFoto = cf.brendaFoto;
+  const hero = limparHero(cf.hero);
+  if (Object.keys(hero).length) out.config.hero = hero;
   const ms = (c && c.motos) || {};
   for (const id of Object.keys(ms).slice(0, 60)) {
     if (!/^[a-z0-9-]{1,40}$/.test(id) || !ms[id] || typeof ms[id] !== "object") continue;

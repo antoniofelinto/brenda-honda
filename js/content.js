@@ -10,11 +10,30 @@
   const numDe = s => { const m = /\d+(?:,\d+)?/.exec(String(s || "")); return m ? parseFloat(m[0].replace(",", ".")) : null; };
   const SPEC0 = { cil: "0 cm³", pot: "", potN: 0, torque: "", cambio: "", tanque: "", tanqueN: 0, peso: "", pesoN: 0, banco: "", freio: "", comb: "" };
 
+  /* texto do topo do site (título, parágrafo e botões). No painel só o
+     CONFIG.hero é atualizado: a página do site (elementos [data-hero]) não existe lá. */
+  window.aplicarHero = function (h) {
+    if (h && typeof h === "object") CONFIG.hero = Object.assign({}, CONFIG.hero, h);
+    if (window.__ADMIN__) return;
+    const hr = CONFIG.hero || {};
+    document.querySelectorAll("[data-hero]").forEach(el => {
+      const k = el.dataset.hero, v = hr[k];
+      if (typeof v !== "string") return;
+      el.textContent = v;
+      if (/^l[123]$/.test(k)) {
+        const ln = el.parentElement;
+        ln.style.display = v ? "" : "none";          // linha em branco some
+        ln.classList.toggle("wrap", v.length > 11);  // linha longa quebra (o padrão mais comprido tem 11)
+      }
+    });
+  };
+
   window.aplicarConteudo = function (c, opt) {
     opt = opt || {};
     if (!c || typeof c !== "object") return;
     const cf = c.config || {};
     ["whatsapp", "instagram", "dataPrecos"].forEach(k => { if (k in cf) CONFIG[k] = cf[k]; });
+    if (cf.hero) aplicarHero(cf.hero);
     if (cf.brendaFoto) CONFIG.brendaFoto = cf.brendaFoto;
     const ed = c.motos || {};
     Object.keys(ed).forEach(id => {
@@ -52,7 +71,12 @@
   const t = setTimeout(ligar, 2200);
   fetch("/api/site?a=content", { cache: "no-cache" })
     .then(r => (r.ok ? r.json() : {}))
-    .then(c => { if (!ligou) { try { aplicarConteudo(c); } catch (e) { console.error(e); } } })
+    .then(c => {
+      try {
+        if (!ligou) aplicarConteudo(c);
+        else if (c && c.config && c.config.hero) aplicarHero(c.config.hero); // chegou tarde: troca só o texto do topo
+      } catch (e) { console.error(e); }
+    })
     .catch(() => {})
     .finally(() => { clearTimeout(t); ligar(); });
 })();

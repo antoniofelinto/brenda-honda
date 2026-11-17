@@ -88,7 +88,20 @@
   function pintarGeral() {
     $("#gZap").value = fmtZap(CONFIG.whatsapp); $("#gIg").value = CONFIG.instagram || ""; $("#gDt").value = CONFIG.dataPrecos || "";
     $("#gFoto").src = CONFIG.brendaFoto || "assets/brenda.webp";
+    pintarHero();
   }
+  /* ---------- texto do topo do site ---------- */
+  function pintarHero() {
+    document.querySelectorAll("[data-hf]").forEach(el => { el.value = (CONFIG.hero || {})[el.dataset.hf] || ""; });
+  }
+  document.addEventListener("input", e => {
+    const k = e.target.dataset && e.target.dataset.hf; if (!k) return;
+    CONFIG.hero = CONFIG.hero || {}; CONFIG.hero[k] = e.target.value; sujo();
+  });
+  $("#hOrig").addEventListener("click", () => {
+    if (!confirm("Voltar o título, o parágrafo e os botões para o texto original?")) return;
+    CONFIG.hero = clone(CONFIG_PADRAO.hero); pintarHero(); sujo();
+  });
   document.addEventListener("input", e => {
     const k = e.target.dataset && e.target.dataset.cfg; if (!k) return;
     let v = e.target.value;
@@ -260,6 +273,10 @@
   function montar() {
     const config = { whatsapp: CONFIG.whatsapp, instagram: CONFIG.instagram, dataPrecos: CONFIG.dataPrecos };
     if (CONFIG.brendaFoto) config.brendaFoto = CONFIG.brendaFoto;
+    const hero = {}, h0 = CONFIG_PADRAO.hero, h1 = CONFIG.hero || {};
+    Object.keys(h0).forEach(k => { if ((h1[k] || "").trim() !== h0[k]) hero[k] = h1[k] || ""; });
+    if (["l1", "l2", "l3"].some(k => k in hero)) ["l1", "l2", "l3"].forEach(k => { hero[k] = (h1[k] || "").trim(); }); // título sempre vai inteiro
+    if (Object.keys(hero).length) config.hero = hero;
     const motos = {};
     MOTOS.forEach(m => { const p = padraoDe(m); if (!p || JSON.stringify(m) !== JSON.stringify(p)) motos[m.id] = m; });
     return { config, motos };
@@ -267,6 +284,9 @@
   function validar() {
     const z = String(CONFIG.whatsapp || "").replace(/\D/g, "");
     if (z && (z.length < 12 || z.length > 13)) { window.scrollTo({ top: 0, behavior: "smooth" }); throw new Error("WhatsApp incompleto: coloque o DDD e o número (ex.: 81 99999-9999)."); }
+    const h = CONFIG.hero = CONFIG.hero || {};
+    if (!["l1", "l2", "l3"].some(k => (h[k] || "").trim())) { window.scrollTo({ top: 0, behavior: "smooth" }); throw new Error("Texto do topo: coloque pelo menos uma linha no título."); }
+    ["texto", "btn1", "btn2"].forEach(k => { if (!(h[k] || "").trim()) { h[k] = CONFIG_PADRAO.hero[k]; pintarHero(); } }); // vazio volta ao original
     for (let i = 0; i < MOTOS.length; i++) {
       const m = MOTOS[i], det = $(`details.moto[data-i="${i}"]`);
       m.nome = (m.nome || "").trim();
