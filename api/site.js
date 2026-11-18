@@ -120,6 +120,15 @@ function limparHero(h) {
   if (HERO_LINHAS.every(k => out[k] === "")) HERO_LINHAS.forEach(k => delete out[k]); // título não pode ficar sem nenhuma linha
   return out;
 }
+/* texto do rodapé: nome (negrito), texto ao lado do nome e aviso em letra menor */
+const RODAPE_MAX = { nome: 60, cargo: 120, aviso: 300 };
+function limparRodape(r) {
+  const out = {};
+  if (!r || typeof r !== "object") return out;
+  for (const k of ["nome", "aviso"]) if (typeof r[k] === "string") { const v = txt(r[k], RODAPE_MAX[k]); if (v) out[k] = v; }
+  if (typeof r.cargo === "string") out.cargo = txt(r.cargo, RODAPE_MAX.cargo); // pode ficar em branco: só o nome aparece
+  return out;
+}
 function limpar(c) {
   const out = { v: 1, config: {}, motos: {} };
   const cf = (c && c.config) || {};
@@ -130,6 +139,8 @@ function limpar(c) {
   if (fotoOk(cf.brendaFoto)) out.config.brendaFoto = cf.brendaFoto;
   const hero = limparHero(cf.hero);
   if (Object.keys(hero).length) out.config.hero = hero;
+  const rodape = limparRodape(cf.rodape);
+  if (Object.keys(rodape).length) out.config.rodape = rodape;
   const ms = (c && c.motos) || {};
   for (const id of Object.keys(ms).slice(0, 60)) {
     if (!/^[a-z0-9-]{1,40}$/.test(id) || !ms[id] || typeof ms[id] !== "object") continue;

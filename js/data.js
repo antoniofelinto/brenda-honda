@@ -21,6 +21,13 @@ const CONFIG = {
     texto: "Eu sou a Brenda, vendedora interna da Motorac, em Toritama. Veja as Honda 0 km, compare os modelos e me chame para conversar.",
     btn1: "Falar com a Brenda",
     btn2: "Ver as motos"
+  },
+  // Texto do rodapé, no final do site (editável no painel). nome = em negrito;
+  // cargo = vem depois do nome, separado por vírgula; aviso = linha em letra menor.
+  rodape: {
+    nome: "Brenda Honda",
+    cargo: "vendedora interna da Motorac, Toritama.",
+    aviso: "Site de divulgação da vendedora. Honda é marca de Honda Motor Co., Ltd. As imagens são ilustrativas; consulte cores, versões e condições oficiais com a Brenda."
   }
 };
 

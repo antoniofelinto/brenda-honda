@@ -88,8 +88,20 @@
   function pintarGeral() {
     $("#gZap").value = fmtZap(CONFIG.whatsapp); $("#gIg").value = CONFIG.instagram || ""; $("#gDt").value = CONFIG.dataPrecos || "";
     $("#gFoto").src = CONFIG.brendaFoto || "assets/brenda.webp";
-    pintarHero();
+    pintarHero(); pintarRodape();
   }
+  /* ---------- texto do rodapé do site ---------- */
+  function pintarRodape() {
+    document.querySelectorAll("[data-rf]").forEach(el => { el.value = (CONFIG.rodape || {})[el.dataset.rf] || ""; });
+  }
+  document.addEventListener("input", e => {
+    const k = e.target.dataset && e.target.dataset.rf; if (!k) return;
+    CONFIG.rodape = CONFIG.rodape || {}; CONFIG.rodape[k] = e.target.value; sujo();
+  });
+  $("#rOrig").addEventListener("click", () => {
+    if (!confirm("Voltar o texto do rodapé para o original?")) return;
+    CONFIG.rodape = clone(CONFIG_PADRAO.rodape); pintarRodape(); sujo();
+  });
   /* ---------- texto do topo do site ---------- */
   function pintarHero() {
     document.querySelectorAll("[data-hf]").forEach(el => { el.value = (CONFIG.hero || {})[el.dataset.hf] || ""; });
@@ -396,6 +408,9 @@
     Object.keys(h0).forEach(k => { if ((h1[k] || "").trim() !== h0[k]) hero[k] = h1[k] || ""; });
     if (["l1", "l2", "l3"].some(k => k in hero)) ["l1", "l2", "l3"].forEach(k => { hero[k] = (h1[k] || "").trim(); }); // título sempre vai inteiro
     if (Object.keys(hero).length) config.hero = hero;
+    const rodape = {}, r0 = CONFIG_PADRAO.rodape, r1 = CONFIG.rodape || {};
+    Object.keys(r0).forEach(k => { if ((r1[k] || "").trim() !== r0[k]) rodape[k] = (r1[k] || "").trim(); });
+    if (Object.keys(rodape).length) config.rodape = rodape;
     const motos = {};
     MOTOS.forEach(m => { const p = padraoDe(m); if (!p || JSON.stringify(m) !== JSON.stringify(p)) motos[m.id] = m; });
     return { config, motos };
@@ -406,6 +421,8 @@
     const h = CONFIG.hero = CONFIG.hero || {};
     if (!["l1", "l2", "l3"].some(k => (h[k] || "").trim())) { window.scrollTo({ top: 0, behavior: "smooth" }); throw new Error("Texto do topo: coloque pelo menos uma linha no título."); }
     ["texto", "btn1", "btn2"].forEach(k => { if (!(h[k] || "").trim()) { h[k] = CONFIG_PADRAO.hero[k]; pintarHero(); } }); // vazio volta ao original
+    const rd = CONFIG.rodape = CONFIG.rodape || {};
+    ["nome", "aviso"].forEach(k => { if (!(rd[k] || "").trim()) { rd[k] = CONFIG_PADRAO.rodape[k]; pintarRodape(); } }); // vazio volta ao original
     for (let i = 0; i < MOTOS.length; i++) {
       const m = MOTOS[i], det = $(`details.moto[data-i="${i}"]`);
       m.nome = (m.nome || "").trim();

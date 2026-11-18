@@ -28,12 +28,26 @@
     });
   };
 
+  /* texto do rodapé (nome, texto ao lado e aviso). No painel só o CONFIG.rodape é
+     atualizado: o rodapé do site (elementos [data-rodape]) não existe lá. */
+  window.aplicarRodape = function (r) {
+    if (r && typeof r === "object") CONFIG.rodape = Object.assign({}, CONFIG.rodape, r);
+    if (window.__ADMIN__) return;
+    const rd = CONFIG.rodape || {};
+    document.querySelectorAll("[data-rodape]").forEach(el => {
+      const k = el.dataset.rodape, v = rd[k];
+      if (typeof v !== "string") return;
+      el.textContent = k === "cargo" && v ? ", " + v : v; // o texto ao lado entra depois de uma vírgula
+    });
+  };
+
   window.aplicarConteudo = function (c, opt) {
     opt = opt || {};
     if (!c || typeof c !== "object") return;
     const cf = c.config || {};
     ["whatsapp", "instagram", "dataPrecos"].forEach(k => { if (k in cf) CONFIG[k] = cf[k]; });
     if (cf.hero) aplicarHero(cf.hero);
+    if (cf.rodape) aplicarRodape(cf.rodape);
     if (cf.brendaFoto) CONFIG.brendaFoto = cf.brendaFoto;
     const ed = c.motos || {};
     Object.keys(ed).forEach(id => {
@@ -74,7 +88,10 @@
     .then(c => {
       try {
         if (!ligou) aplicarConteudo(c);
-        else if (c && c.config && c.config.hero) aplicarHero(c.config.hero); // chegou tarde: troca só o texto do topo
+        else if (c && c.config) { // chegou tarde: troca só os textos do topo e do rodapé
+          if (c.config.hero) aplicarHero(c.config.hero);
+          if (c.config.rodape) aplicarRodape(c.config.rodape);
+        }
       } catch (e) { console.error(e); }
     })
     .catch(() => {})

@@ -3,7 +3,7 @@
 Site estático (HTML/CSS/JS) com painel de administrador em `/admin.html`.
 
 - `index.html`, `css/`, `js/`, `assets/` — o site público
-- `admin.html`, `js/admin.js` — painel (login, fotos, nomes, valores, texto do topo do site)
+- `admin.html`, `js/admin.js` — painel (login, fotos, nomes, valores, texto do topo e do rodapé do site)
 - `api/site.js` — função do Vercel que guarda as edições (Vercel Blob) e faz o login
 
 ## Variáveis de ambiente (Vercel → Settings → Environment Variables)
