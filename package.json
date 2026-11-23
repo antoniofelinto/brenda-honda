@@ -1,0 +1,9 @@
+{
+  "name": "janaina-honda",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vitrine de motos Honda da Janaína (Motorac Toritama) com painel de administrador",
+  "dependencies": {
+    "@vercel/blob": "^2.3.0"
+  }
+}
